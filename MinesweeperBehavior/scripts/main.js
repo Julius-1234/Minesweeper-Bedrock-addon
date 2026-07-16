@@ -2,8 +2,8 @@ import { world, system } from "@minecraft/server";
 const chunkSize = 3000;
 let grid = load();
 const y_pos = -61;
-const mineChance = 1 / 8;
-const stackMaxLength = 2500;
+const mineChance = 1 / 6.4;
+const stackMaxLength = 1000;
 const blocks = [
   "minecraft:gray_concrete", // 0
   "minecraft:blue_concrete", // 1
