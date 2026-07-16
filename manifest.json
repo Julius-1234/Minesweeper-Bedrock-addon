@@ -1,0 +1,25 @@
+{
+  "format_version": 2,
+  "header": {
+    "description": "Minesweeper",
+    "name": "Minesweeper",
+    "uuid": "f1d45ecf-9155-4048-8c55-c8a862a1bc8b",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "description": "Scripting Module",
+      "type": "script",
+      "uuid": "5a0e8a3b-f75d-498a-885f-97c2c68145c6",
+      "version": [1, 0, 0],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "1.13.0"
+    }
+  ]
+}
