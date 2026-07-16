@@ -4,4 +4,6 @@ This is mostly intended for backup, so i won't be very detailed in my explinatio
 
 ## how to use
 
-Put behavior and resource files in correct locations. Enable them in a normal flat world (the default one, as the y coordinates for the game have been set-up for this). Click any where to begin.
+zip and rename the behavior and resource files for .mcpack.
+This add-on is best used in the default flat world because of the y position.
+If you want to change the game y position go to MinesweeperBehavior/scripts/main.js and change the constant y_pos.
