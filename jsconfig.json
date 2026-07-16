@@ -1,7 +1,0 @@
-{
-  "compilerOptions": {
-    "module": "nodenext",
-    "target": "es2020",
-    "moduleResolution": "nodenext"
-  }
-}
