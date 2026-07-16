@@ -115,7 +115,6 @@ function save() {
     world.setDynamicProperty(`grid_${i}`, sub);
     i += 1;
   }
-  load();
 }
 
 function load() {

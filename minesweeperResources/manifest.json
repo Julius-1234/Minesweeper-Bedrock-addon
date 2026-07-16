@@ -2,7 +2,7 @@
   "format_version": 2,
   "header": {
     "name": "Minesweeper retro textures",
-    "description": "Dice style dot markings on some blocks",
+    "description": "Edits the appearance of various (concrete) blocks to resemble classic minesweeper themes.",
     "uuid": "74b20af9-e829-4631-924f-bdb85924cdce",
     "version": [1, 0, 0],
     "min_engine_version": [1, 21, 0]
