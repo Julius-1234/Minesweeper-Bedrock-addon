@@ -1,4 +1,4 @@
-import { world, system } from "@minecraft/server";
+import { world, system, BlockPermutation } from "@minecraft/server";
 const chunkSize = 3000;
 let grid = load();
 const y_pos = -61;
@@ -18,72 +18,119 @@ const blocks = [
 const unclearedBlock = "minecraft:light_gray_concrete";
 const mineBlock = "minecraft:orange_concrete";
 
-function clear(x, y, dimension) {
-  const stack = [getSquare(x, y, false, dimension)];
+let renderIndex = 0;
+const renderStackMax = 1000;
+let renderStack = [];
+const inRenderStack = new Set();
+const blocksPerTick = 500;
+
+class Block {
+  constructor(x, z, dimension) {
+    this.x = x;
+    this.z = z;
+    this.dimension = dimension;
+    this.cleared = false;
+    const isMine = Math.random() < mineChance;
+    this.mine = isMine;
+    this.surr = null;
+    this.currentBlock = null;
+  }
+}
+function setBlock(square) {
+  const loc = { x: square.x, y: y_pos, z: square.z };
+  const dimension = world.getDimension(square.dimension);
+  const target = dimension.getBlock(loc);
+  let newBlock = null;
+  if (!target) return;
+  if (!square.cleared) newBlock = unclearedBlock;
+  if (square.mine && square.cleared) newBlock = mineBlock;
+  if (square.surr !== null && !square.mine && square.cleared)
+    newBlock = blocks[square.surr];
+
+  if (square.currentBlock === newBlock) return;
+  target.setPermutation(BlockPermutation.resolve(newBlock));
+  square.currentBlock = newBlock;
+}
+
+function addToRenderStack(square) {
+  if (!inRenderStack.has(square)) {
+    renderStack.push(square);
+    inRenderStack.add(square);
+  }
+}
+
+const renderInterval = system.runInterval(() => {
+  for (let i = 0; i < blocksPerTick; i++) {
+    if (renderIndex >= renderStack.length) break;
+
+    const square = renderStack[renderIndex];
+    setBlock(square);
+    inRenderStack.delete(square);
+
+    renderIndex++;
+  }
+
+  if (renderIndex >= renderStackMax) {
+    renderStack = renderStack.slice(renderIndex);
+    renderIndex = 0;
+  }
+}, 1);
+
+function clear(x, z, dimension) {
+  const stack = [getSquare(x, z, dimension)];
+  const inStack = new Set(stack);
+
   let index = -1;
-  while (stack.length > ++index && stack.length <= stackMaxLength) {
+  while (stack.length > ++index && index <= stackMaxLength) {
     const square = stack[index];
     const x = square.x;
-    const y = square.y;
+    const z = square.z;
     if (square.cleared) continue;
     square.cleared = true;
     if (square.mine) {
-      mine(x, y, dimension);
+      say("you hit a mine!");
+      addToRenderStack(square);
       break;
     }
-    const found = surr(x, y, dimension);
+    const found = surr(x, z, dimension);
     let num = 0;
     found.forEach((i) => {
+      addToRenderStack(i);
       if (i.mine) num += 1;
     });
-    const loc = { x: x, y: y_pos, z: y };
-    const target = dimension.getBlock(loc);
-    if (target) target.setType(blocks[num]);
+    square.surr = num;
     if (num === 0)
       for (const i of found) {
-        if (i.cleared || stack.includes(i)) continue;
+        if (i.cleared || inStack.has(i)) continue;
         stack.push(i);
+        inStack.add(i);
       }
+    addToRenderStack(square);
   }
   save();
+
+  say("cleared " + String(stack.length) + " squares");
 }
 
-function format(x, y) {
-  return `${y.toString()}_${x.toString()}`;
+function format(x, z, dimension) {
+  return `${z.toString()}_${x.toString()}_${dimension}`;
 }
 
-function getSquare(x, y, isStart, dimension) {
-  if (!grid[format(x, y)]) {
-    grid[format(x, y)] = {
-      cleared: false,
-      mine: isStart ? false : Math.random() < mineChance,
-      x,
-      y,
-    };
-    const loc = { x: x, y: y_pos, z: y };
-    const target = dimension.getBlock(loc);
-    if (target) target.setType(unclearedBlock);
-  }
-  return grid[format(x, y)];
+function getSquare(x, z, dimension) {
+  grid[format(x, z, dimension)] ??= new Block(x, z, dimension);
+  return grid[format(x, z, dimension)];
 }
 
-function surr(x, y, dimension) {
+function surr(x, z, dimension) {
   const found = [];
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       if (i === 0 && j === 0) continue;
-      const square = getSquare(x + i, y + j, false, dimension);
+      const square = getSquare(x + i, z + j, dimension);
       found.push(square);
     }
   }
   return found;
-}
-
-function mine(x, y, dimension) {
-  const loc = { x: x, y: y_pos, z: y };
-  const target = dimension.getBlock(loc);
-  if (target) target.setType(mineBlock);
-  say("you hit a mine!");
 }
 
 function say(message) {
@@ -101,7 +148,7 @@ if (breakSignal) {
     if (block.y === y_pos) {
       eventData.cancel = true;
       system.run(() => {
-        clear(block.x, block.z, block.dimension);
+        clear(block.x, block.z, block.dimension.id);
       });
     }
   });
@@ -110,7 +157,7 @@ if (breakSignal) {
 function save() {
   const full = JSON.stringify(grid);
   let i = 0;
-  while (i < full.length) {
+  while (i * chunkSize < full.length) {
     const sub = full.substring(i * chunkSize, (i + 1) * chunkSize);
     world.setDynamicProperty(`grid_${i}`, sub);
     i += 1;
